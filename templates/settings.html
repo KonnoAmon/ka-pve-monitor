@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - Lab Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div class="bg-indigo-600 px-8 py-6">
+            <h1 class="text-2xl font-bold text-white flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                PVE 连接配置
+            </h1>
+            <p class="text-indigo-100 text-sm mt-1">请填写 Proxmox VE 的 API 访问信息</p>
+        </div>
+        
+        <form action="/settings" method="post" class="p-8 space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">PVE IP 地址 (Host)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    </span>
+                    <input type="text" name="pve_host" value="{{ config.pve_host }}" placeholder="例如 192.168.1.2" required 
+                           class="pl-10 block w-full border border-slate-300 rounded-lg py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">用户名</label>
+                    <input type="text" name="pve_user" value="{{ config.pve_user or 'root@pam' }}" required 
+                           class="block w-full border border-slate-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Token ID</label>
+                    <input type="text" name="pve_token_name" value="{{ config.pve_token_name }}" placeholder="例如 monitor" required 
+                           class="block w-full border border-slate-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                    <p class="text-xs text-slate-400 mt-1">不带 "root@pam!"</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Secret (密钥)</label>
+                <input type="password" name="pve_token_value" value="{{ config.pve_token_value }}" placeholder="UUID 格式的密钥" required 
+                       class="block w-full border border-slate-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500 outline-none transition font-mono">
+            </div>
+
+            <div class="pt-4 flex space-x-3">
+                <a href="/" class="w-1/3 bg-slate-100 text-slate-700 text-center py-2.5 rounded-lg hover:bg-slate-200 transition font-medium">
+                    取消
+                </a>
+                <button type="submit" class="w-2/3 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium shadow-md hover:shadow-lg">
+                    💾 保存配置
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
