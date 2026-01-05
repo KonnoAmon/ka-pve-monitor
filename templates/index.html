@@ -3,51 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeLab 控制台</title>
+    <title>KA-PVE 监控面板</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+    <style> body { font-family: 'Inter', sans-serif; } </style>
     <script>
         async function controlPVE(node, vmid, action) {
-            // 简单防误触
-            if(action === 'stop' || action === 'shutdown') {
-                if(!confirm(`⚠️ 警告: 确定要关闭虚拟机 ${vmid} 吗?`)) return;
-            }
-            try { 
-                await fetch(`/api/pve/${node}/${vmid}/${action}`, {method: 'POST'}); 
-                setTimeout(() => location.reload(), 1000); // 延迟1秒刷新以获取最新状态
-            } catch (e) { alert("操作失败: " + e); }
+            if(action === 'stop' || action === 'shutdown') { if(!confirm(`⚠️ 警告: 确定要关闭虚拟机 ${vmid} 吗?`)) return; }
+            try { await fetch(`/api/pve/${node}/${vmid}/${action}`, {method: 'POST'}); setTimeout(() => location.reload(), 1000); } catch (e) { alert("操作失败: " + e); }
         }
-
         async function controlDocker(cid, action) {
             if(action === 'stop' && !confirm(`⚠️ 确定要停止容器 ${cid} 吗?`)) return;
-            try { 
-                await fetch(`/api/docker/${cid}/${action}`, {method: 'POST'}); 
-                setTimeout(() => location.reload(), 1000);
-            } catch (e) { alert("操作失败: " + e); }
+            try { await fetch(`/api/docker/${cid}/${action}`, {method: 'POST'}); setTimeout(() => location.reload(), 1000); } catch (e) { alert("操作失败: " + e); }
         }
     </script>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800">
+<body class="bg-slate-50 min-h-screen text-slate-800 pb-10">
 
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                    <span class="ml-2 text-xl font-bold tracking-tight text-slate-900">Lab Dashboard</span>
+                    <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    <span class="ml-2 text-xl font-bold tracking-tight text-slate-900">KA-PVE Monitor</span>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/settings" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="系统设置">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </a>
+                <div class="flex items-center">
+                    <a href="/settings" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></a>
                 </div>
             </div>
         </div>
@@ -58,18 +39,70 @@
         {% if errors %}
         <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md shadow-sm">
             <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
-                </div>
                 <div class="ml-3">
-                    <h3 class="text-sm font-medium text-red-800">系统遇到了一些问题</h3>
-                    <ul class="mt-1 list-disc list-inside text-sm text-red-700">
-                        {% for error in errors %}<li>{{ error }}</li>{% endfor %}
-                    </ul>
+                    <h3 class="text-sm font-medium text-red-800">系统提示</h3>
+                    <ul class="mt-1 list-disc list-inside text-sm text-red-700">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
                 </div>
             </div>
         </div>
         {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10"><svg class="w-24 h-24 text-orange-500" fill="currentColor" viewBox="0 0 24 24"><path d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg></div>
+                <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-4 flex items-center">
+                    <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.pve.online else 'bg-red-500' }} mr-2"></span> Proxmox 节点负载
+                </h3>
+                <div class="space-y-4 relative z-10">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600 font-medium">CPU 占用</span>
+                            <span class="font-bold {{ 'text-red-500' if stats.pve.cpu > 80 else 'text-slate-800' }}">{{ stats.pve.cpu }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div class="bg-orange-500 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.pve.cpu }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600 font-medium">内存 ({{ stats.pve.ram_used }}G / {{ stats.pve.ram_total }}G)</span>
+                            <span class="font-bold {{ 'text-red-500' if stats.pve.ram_percent > 80 else 'text-slate-800' }}">{{ stats.pve.ram_percent }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div class="bg-orange-400 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.pve.ram_percent }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10"><svg class="w-24 h-24 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg></div>
+                <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-4 flex items-center">
+                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Docker 宿主机负载
+                </h3>
+                <div class="space-y-4 relative z-10">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600 font-medium">CPU 占用</span>
+                            <span class="font-bold {{ 'text-red-500' if stats.docker.cpu > 80 else 'text-slate-800' }}">{{ stats.docker.cpu }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.docker.cpu }}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600 font-medium">内存 ({{ stats.docker.ram_used }}G / {{ stats.docker.ram_total }}G)</span>
+                            <span class="font-bold {{ 'text-red-500' if stats.docker.ram_percent > 80 else 'text-slate-800' }}">{{ stats.docker.ram_percent }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5">
+                            <div class="bg-blue-400 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.docker.ram_percent }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="mb-10">
             <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
@@ -78,7 +111,6 @@
                 </span>
                 Proxmox VE 虚拟机
             </h2>
-            
             {% if vms %}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for vm in vms %}
@@ -94,21 +126,12 @@
                                 {{ vm.status }}
                             </span>
                         </div>
-                        
                         <div class="flex justify-end space-x-2 pt-2 border-t border-slate-50">
                             {% if vm.status == 'stopped' %}
-                            <button onclick="controlPVE('{{vm.node}}', '{{vm.id}}', 'start')" class="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-2 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center">
-                                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                启动
-                            </button>
+                            <button onclick="controlPVE('{{vm.node}}', '{{vm.id}}', 'start')" class="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-2 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center">启动</button>
                             {% else %}
-                            <button onclick="controlPVE('{{vm.node}}', '{{vm.id}}', 'shutdown')" class="flex-1 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 py-2 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center">
-                                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-                                关机
-                            </button>
-                            <button onclick="controlPVE('{{vm.node}}', '{{vm.id}}', 'stop')" class="bg-red-50 text-red-700 hover:bg-red-100 p-2 rounded-lg transition" title="强制断电">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            </button>
+                            <button onclick="controlPVE('{{vm.node}}', '{{vm.id}}', 'shutdown')" class="flex-1 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 py-2 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center">关机</button>
+                            <button onclick="controlPVE('{{vm.node}}', '{{vm.id}}', 'stop')" class="bg-red-50 text-red-700 hover:bg-red-100 p-2 rounded-lg transition" title="强制断电"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>
                             {% endif %}
                         </div>
                     </div>
@@ -116,9 +139,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="bg-white rounded-lg p-6 text-center text-slate-500 border border-dashed border-slate-300">
-                暂未连接到 PVE 节点或无虚拟机
-            </div>
+            <div class="bg-white rounded-lg p-6 text-center text-slate-500 border border-dashed border-slate-300">暂未连接到 PVE 节点或无虚拟机</div>
             {% endif %}
         </div>
 
@@ -129,7 +150,6 @@
                 </span>
                 Docker 容器
             </h2>
-
             {% if containers %}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for c in containers %}
@@ -145,19 +165,12 @@
                                 {{ c.status }}
                             </span>
                         </div>
-                        
                         <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
                             {% if c.status != 'running' %}
-                            <button onclick="controlDocker('{{c.id}}', 'start')" class="col-span-2 bg-green-50 text-green-700 hover:bg-green-100 py-2 rounded-lg text-sm font-medium transition">
-                                启动
-                            </button>
+                            <button onclick="controlDocker('{{c.id}}', 'start')" class="col-span-2 bg-green-50 text-green-700 hover:bg-green-100 py-2 rounded-lg text-sm font-medium transition">启动</button>
                             {% else %}
-                            <button onclick="controlDocker('{{c.id}}', 'restart')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-2 rounded-lg text-sm font-medium transition">
-                                重启
-                            </button>
-                            <button onclick="controlDocker('{{c.id}}', 'stop')" class="bg-red-50 text-red-700 hover:bg-red-100 py-2 rounded-lg text-sm font-medium transition">
-                                停止
-                            </button>
+                            <button onclick="controlDocker('{{c.id}}', 'restart')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-2 rounded-lg text-sm font-medium transition">重启</button>
+                            <button onclick="controlDocker('{{c.id}}', 'stop')" class="bg-red-50 text-red-700 hover:bg-red-100 py-2 rounded-lg text-sm font-medium transition">停止</button>
                             {% endif %}
                         </div>
                     </div>
@@ -165,15 +178,10 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="bg-white rounded-lg p-6 text-center text-slate-500 border border-dashed border-slate-300">
-                暂未检测到 Docker 容器
-            </div>
+            <div class="bg-white rounded-lg p-6 text-center text-slate-500 border border-dashed border-slate-300">暂未检测到 Docker 容器</div>
             {% endif %}
         </div>
     </main>
-
-    <footer class="text-center py-6 text-slate-400 text-sm">
-        <p>© 2025 KA-PVE监控面板</p>
-    </footer>
+    <footer class="text-center py-6 text-slate-400 text-sm"><p>© 2024 KA-PVE Monitor</p></footer>
 </body>
 </html>
