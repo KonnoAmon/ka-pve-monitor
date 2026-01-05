@@ -6,16 +6,62 @@
     <title>KA-PVE 监控面板</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <style> body { font-family: 'Inter', sans-serif; } .transition-width { transition: width 0.5s ease-in-out; } </style>
     <script>
+        // 控制逻辑
         async function controlPVE(node, vmid, action) {
             if(action === 'stop' || action === 'shutdown') { if(!confirm(`⚠️ 警告: 确定要关闭虚拟机 ${vmid} 吗?`)) return; }
-            try { await fetch(`/api/pve/${node}/${vmid}/${action}`, {method: 'POST'}); setTimeout(() => location.reload(), 1000); } catch (e) { alert("操作失败: " + e); }
+            try { await fetch(`/api/pve/${node}/${vmid}/${action}`, {method: 'POST'}); updateDashboard(); } catch (e) { alert("操作失败: " + e); }
         }
         async function controlDocker(cid, action) {
             if(action === 'stop' && !confirm(`⚠️ 确定要停止容器 ${cid} 吗?`)) return;
-            try { await fetch(`/api/docker/${cid}/${action}`, {method: 'POST'}); setTimeout(() => location.reload(), 1000); } catch (e) { alert("操作失败: " + e); }
+            try { await fetch(`/api/docker/${cid}/${action}`, {method: 'POST'}); updateDashboard(); } catch (e) { alert("操作失败: " + e); }
         }
+
+        // 核心：动态更新逻辑
+        async function updateDashboard() {
+            try {
+                const response = await fetch('/api/monitor');
+                const data = await response.json();
+                
+                // 更新 PVE 数据
+                updateStats('pve', data.pve);
+                
+                // 更新 Docker 数据
+                updateStats('docker', data.docker);
+
+                // (进阶) 如果你想动态更新虚拟机状态文字，可以在这里扩展，但需要复杂的DOM操作
+                // 目前主要保证最显眼的仪表盘是实时的
+            } catch (error) {
+                console.error("数据获取失败:", error);
+            }
+        }
+
+        function updateStats(type, stats) {
+            // 更新 CPU
+            const cpuBar = document.getElementById(`${type}-cpu-bar`);
+            const cpuText = document.getElementById(`${type}-cpu-text`);
+            if(cpuBar && cpuText) {
+                cpuBar.style.width = `${stats.cpu}%`;
+                cpuText.innerText = `${stats.cpu}%`;
+                // 颜色变化：超过80%变红
+                cpuText.className = `font-bold ${stats.cpu > 80 ? 'text-red-500' : 'text-slate-800'}`;
+            }
+
+            // 更新 RAM
+            const ramBar = document.getElementById(`${type}-ram-bar`);
+            const ramText = document.getElementById(`${type}-ram-text`);
+            const ramLabel = document.getElementById(`${type}-ram-label`);
+            if(ramBar && ramText && ramLabel) {
+                ramBar.style.width = `${stats.ram_percent}%`;
+                ramText.innerText = `${stats.ram_percent}%`;
+                ramLabel.innerText = `内存 (${stats.ram_used}G / ${stats.ram_total}G)`;
+                ramText.className = `font-bold ${stats.ram_percent > 80 ? 'text-red-500' : 'text-slate-800'}`;
+            }
+        }
+
+        // 每 3000 毫秒 (3秒) 更新一次
+        setInterval(updateDashboard, 3000);
     </script>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 pb-10">
@@ -35,18 +81,6 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {% if errors %}
-        <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md shadow-sm">
-            <div class="flex">
-                <div class="ml-3">
-                    <h3 class="text-sm font-medium text-red-800">系统提示</h3>
-                    <ul class="mt-1 list-disc list-inside text-sm text-red-700">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-hidden">
@@ -58,19 +92,19 @@
                     <div>
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-slate-600 font-medium">CPU 占用</span>
-                            <span class="font-bold {{ 'text-red-500' if stats.pve.cpu > 80 else 'text-slate-800' }}">{{ stats.pve.cpu }}%</span>
+                            <span id="pve-cpu-text" class="font-bold {{ 'text-red-500' if stats.pve.cpu > 80 else 'text-slate-800' }}">{{ stats.pve.cpu }}%</span>
                         </div>
                         <div class="w-full bg-slate-100 rounded-full h-2.5">
-                            <div class="bg-orange-500 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.pve.cpu }}%"></div>
+                            <div id="pve-cpu-bar" class="bg-orange-500 h-2.5 rounded-full transition-width" style="width: {{ stats.pve.cpu }}%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-slate-600 font-medium">内存 ({{ stats.pve.ram_used }}G / {{ stats.pve.ram_total }}G)</span>
-                            <span class="font-bold {{ 'text-red-500' if stats.pve.ram_percent > 80 else 'text-slate-800' }}">{{ stats.pve.ram_percent }}%</span>
+                            <span id="pve-ram-label" class="text-slate-600 font-medium">内存 ({{ stats.pve.ram_used }}G / {{ stats.pve.ram_total }}G)</span>
+                            <span id="pve-ram-text" class="font-bold {{ 'text-red-500' if stats.pve.ram_percent > 80 else 'text-slate-800' }}">{{ stats.pve.ram_percent }}%</span>
                         </div>
                         <div class="w-full bg-slate-100 rounded-full h-2.5">
-                            <div class="bg-orange-400 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.pve.ram_percent }}%"></div>
+                            <div id="pve-ram-bar" class="bg-orange-400 h-2.5 rounded-full transition-width" style="width: {{ stats.pve.ram_percent }}%"></div>
                         </div>
                     </div>
                 </div>
@@ -85,19 +119,19 @@
                     <div>
                         <div class="flex justify-between text-sm mb-1">
                             <span class="text-slate-600 font-medium">CPU 占用</span>
-                            <span class="font-bold {{ 'text-red-500' if stats.docker.cpu > 80 else 'text-slate-800' }}">{{ stats.docker.cpu }}%</span>
+                            <span id="docker-cpu-text" class="font-bold {{ 'text-red-500' if stats.docker.cpu > 80 else 'text-slate-800' }}">{{ stats.docker.cpu }}%</span>
                         </div>
                         <div class="w-full bg-slate-100 rounded-full h-2.5">
-                            <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.docker.cpu }}%"></div>
+                            <div id="docker-cpu-bar" class="bg-blue-500 h-2.5 rounded-full transition-width" style="width: {{ stats.docker.cpu }}%"></div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between text-sm mb-1">
-                            <span class="text-slate-600 font-medium">内存 ({{ stats.docker.ram_used }}G / {{ stats.docker.ram_total }}G)</span>
-                            <span class="font-bold {{ 'text-red-500' if stats.docker.ram_percent > 80 else 'text-slate-800' }}">{{ stats.docker.ram_percent }}%</span>
+                            <span id="docker-ram-label" class="text-slate-600 font-medium">内存 ({{ stats.docker.ram_used }}G / {{ stats.docker.ram_total }}G)</span>
+                            <span id="docker-ram-text" class="font-bold {{ 'text-red-500' if stats.docker.ram_percent > 80 else 'text-slate-800' }}">{{ stats.docker.ram_percent }}%</span>
                         </div>
                         <div class="w-full bg-slate-100 rounded-full h-2.5">
-                            <div class="bg-blue-400 h-2.5 rounded-full transition-all duration-500" style="width: {{ stats.docker.ram_percent }}%"></div>
+                            <div id="docker-ram-bar" class="bg-blue-400 h-2.5 rounded-full transition-width" style="width: {{ stats.docker.ram_percent }}%"></div>
                         </div>
                     </div>
                 </div>
@@ -143,7 +177,7 @@
             {% endif %}
         </div>
 
-        <div>
+        <div class="mb-10">
             <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
                 <span class="bg-blue-100 text-blue-600 p-1.5 rounded-lg mr-2">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>

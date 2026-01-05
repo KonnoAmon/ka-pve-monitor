@@ -1,8 +1,8 @@
 import os
 import json
-import psutil # 新增
+import psutil
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from proxmoxer import ProxmoxAPI
@@ -45,9 +45,60 @@ def get_docker_client():
     try: return docker.from_env()
     except: return None
 
-# 格式化字节单位 (比如把 1024000 转成 1GB)
 def bytes_to_gb(bytes_value):
     return round(bytes_value / (1024 ** 3), 1)
+
+# --- 核心：数据获取逻辑提取 ---
+def get_system_status():
+    data = {
+        "pve": {"cpu": 0, "ram_percent": 0, "ram_used": 0, "ram_total": 0, "online": False},
+        "docker": {"cpu": 0, "ram_percent": 0, "ram_used": 0, "ram_total": 0},
+        "vms": [],
+        "containers": []
+    }
+    
+    # 1. PVE 数据
+    pve = get_pve_client()
+    if pve:
+        try:
+            nodes = pve.nodes.get()
+            if nodes:
+                node_name = nodes[0]['node']
+                node_status = pve.nodes(node_name).status.get()
+                
+                data['pve']['online'] = True
+                data['pve']['cpu'] = round(node_status.get('cpu', 0) * 100, 1)
+                mem_total = node_status.get('memory', {}).get('total', 1)
+                mem_used = node_status.get('memory', {}).get('used', 0)
+                data['pve']['ram_total'] = bytes_to_gb(mem_total)
+                data['pve']['ram_used'] = bytes_to_gb(mem_used)
+                data['pve']['ram_percent'] = round((mem_used / mem_total) * 100, 1)
+
+                for node in nodes:
+                    for vm in pve.nodes(node['node']).qemu.get():
+                        data['vms'].append({
+                            "id": vm['vmid'],
+                            "name": vm.get('name', 'Unknown'),
+                            "status": vm.get('status', 'unknown'),
+                            "node": node['node']
+                        })
+        except: pass
+
+    # 2. Docker/Local 数据
+    try:
+        data['docker']['cpu'] = psutil.cpu_percent(interval=None) # interval=None 非阻塞
+        mem = psutil.virtual_memory()
+        data['docker']['ram_total'] = bytes_to_gb(mem.total)
+        data['docker']['ram_used'] = bytes_to_gb(mem.used)
+        data['docker']['ram_percent'] = mem.percent
+
+        d_client = get_docker_client()
+        if d_client:
+            for c in d_client.containers.list(all=True):
+                data['containers'].append({"id": c.short_id, "name": c.name, "status": c.status})
+    except: pass
+    
+    return data
 
 # --- 路由 ---
 
@@ -55,74 +106,24 @@ def bytes_to_gb(bytes_value):
 async def dashboard(request: Request):
     config = load_config()
     if not config: return RedirectResponse(url="/settings", status_code=302)
-
-    vms = []
-    containers = []
-    errors = []
     
-    # 1. 监控数据初始化
-    stats = {
-        "pve": {"cpu": 0, "ram_percent": 0, "ram_used": 0, "ram_total": 0, "online": False},
-        "docker": {"cpu": 0, "ram_percent": 0, "ram_used": 0, "ram_total": 0}
-    }
-
-    # 2. 获取 PVE 数据 & 资源状态
-    pve = get_pve_client()
-    if pve:
-        try:
-            nodes = pve.nodes.get()
-            # 默认只取第一个节点的状态作为 PVE 整体状态
-            if nodes:
-                node_name = nodes[0]['node']
-                node_status = pve.nodes(node_name).status.get()
-                
-                # PVE 资源计算
-                stats['pve']['online'] = True
-                stats['pve']['cpu'] = round(node_status.get('cpu', 0) * 100, 1) # API返回的是 0.05 代表 5%
-                mem_total = node_status.get('memory', {}).get('total', 1)
-                mem_used = node_status.get('memory', {}).get('used', 0)
-                stats['pve']['ram_total'] = bytes_to_gb(mem_total)
-                stats['pve']['ram_used'] = bytes_to_gb(mem_used)
-                stats['pve']['ram_percent'] = round((mem_used / mem_total) * 100, 1)
-
-                # 获取虚拟机列表
-                for node in nodes:
-                    for vm in pve.nodes(node['node']).qemu.get():
-                        vms.append({
-                            "id": vm['vmid'],
-                            "name": vm.get('name', 'Unknown'),
-                            "status": vm.get('status', 'unknown'),
-                            "node": node['node']
-                        })
-        except Exception as e:
-            errors.append(f"PVE连接失败: {str(e)}")
-    else:
-        errors.append("PVE未连接")
-
-    # 3. 获取本机(Docker宿主机) 资源状态
-    try:
-        # psutil 获取的是容器内的视角，如果为了获取宿主机，需要挂载 /proc (后面docker-compose会讲)
-        # 这里演示获取本机/容器的状态
-        stats['docker']['cpu'] = psutil.cpu_percent(interval=0.1)
-        mem = psutil.virtual_memory()
-        stats['docker']['ram_total'] = bytes_to_gb(mem.total)
-        stats['docker']['ram_used'] = bytes_to_gb(mem.used)
-        stats['docker']['ram_percent'] = mem.percent
-
-        d_client = get_docker_client()
-        if d_client:
-            for c in d_client.containers.list(all=True):
-                containers.append({"id": c.short_id, "name": c.name, "status": c.status})
-    except Exception as e:
-        errors.append(f"Docker/系统监控失败: {str(e)}")
-
+    # 首次加载时获取一次数据
+    data = get_system_status()
+    
     return templates.TemplateResponse("index.html", {
-        "request": request, "vms": vms, "containers": containers, "errors": errors, "stats": stats
+        "request": request, 
+        "vms": data['vms'], 
+        "containers": data['containers'], 
+        "stats": data,
+        "errors": []
     })
 
-# ... (settings 和 api 的路由保持不变，为了节省篇幅我省略了，请保留你原来的代码) ...
-# 为了保证完整性，你需要把原来 main.py 下面的 /settings 和 /api 相关的代码原样粘在下面
-# --------------------------------------------------------------------------
+# 新增：专门用于前端轮询数据的 JSON 接口
+@app.get("/api/monitor")
+async def api_monitor():
+    return JSONResponse(get_system_status())
+
+# ... (保持 settings 和 control API 不变) ...
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     config = load_config() or {}
